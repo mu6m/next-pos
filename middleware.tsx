@@ -10,7 +10,11 @@ export async function middleware(request: NextRequest) {
 			return NextResponse.redirect(new URL("/auth/login", request.url));
 		}
 	} else {
-		if (token === false || !token || token.type != "EMPLOYEE") {
+		if (
+			token === false ||
+			!token ||
+			(token.type != "EMPLOYEE" && token.type != "ADMIN")
+		) {
 			return NextResponse.redirect(new URL("/auth/login", request.url));
 		}
 	}

@@ -10,6 +10,7 @@ export const GET = async (request: any, params: any) => {
 	const searchParams = request.nextUrl.searchParams;
 	const search: string = searchParams.get("q") || "";
 	const id: string = searchParams.get("id");
+	const all: string = searchParams.get("all");
 	const currentPage: number = Number(searchParams.get("page")) || 1;
 
 	const cookie = cookies().get("user");
@@ -41,6 +42,21 @@ export const GET = async (request: any, params: any) => {
 			);
 		}
 		return Response.json({ item });
+	}
+	if (all) {
+		const item = await db.query.categoryTable.findMany();
+		if (!item) {
+			return Response.json(
+				{
+					success: false,
+					message: `item not found`,
+				},
+				{
+					status: 400,
+				}
+			);
+		}
+		return Response.json(item);
 	}
 	//optimize this
 	const [page_count] = await db

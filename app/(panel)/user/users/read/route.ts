@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { column, task } from "@/db/schema";
+import { user } from "@/db/schema";
 import { eq, or, ilike, count, desc, and } from "drizzle-orm";
 import { verifyAccessToken } from "@/lib/jwt";
 import { cookies } from "next/headers";
@@ -26,11 +26,8 @@ export const GET = async (request: any, params: any) => {
 		);
 	}
 	if (id) {
-		const item = await db.query.task.findFirst({
-			where: and(eq(task.id, id), eq(task.userId, token.id)),
-			with: {
-				columns: true,
-			},
+		const item = await db.query.user.findFirst({
+			where: eq(user.id, id),
 		});
 		if (!item) {
 			return Response.json(
@@ -48,17 +45,14 @@ export const GET = async (request: any, params: any) => {
 	//optimize this
 	const [page_count] = await db
 		.select({ count: count() })
-		.from(task)
-		.where(and(ilike(task.title, `%${search}%`), eq(task.userId, token.id)));
+		.from(user)
+		.where(ilike(user.username, `%${search}%`));
 	const pages = Math.ceil(page_count.count / perPage);
-	const items = await db.query.task.findMany({
-		orderBy: desc(task.createdAt),
+	const items = await db.query.user.findMany({
+		orderBy: desc(user.createdAt),
 		offset: (currentPage - 1) * perPage,
 		limit: perPage,
-		with: {
-			columns: true,
-		},
-		where: and(ilike(task.title, `%${search}%`), eq(task.userId, token.id)),
+		where: ilike(user.username, `%${search}%`),
 	});
 	return Response.json({ items, pages });
 };

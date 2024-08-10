@@ -92,11 +92,10 @@ export default function DataTable({ searchParams }: any) {
 						<TableRow>
 							<TableHead>id</TableHead>
 							<TableHead>Title</TableHead>
-							<TableHead>content</TableHead>
 							<TableHead>sku</TableHead>
 							<TableHead>limit</TableHead>
 							<TableHead>price</TableHead>
-							<TableHead>publish</TableHead>
+							<TableHead>published</TableHead>
 							<TableHead>actions</TableHead>
 						</TableRow>
 					</TableHeader>
@@ -106,7 +105,13 @@ export default function DataTable({ searchParams }: any) {
 									return (
 										<TableRow key={item.id}>
 											<TableCell>{index + 1}</TableCell>
-											<TableCell className="font-medium">{item.name}</TableCell>
+											<TableCell className="font-medium">
+												{item.title}
+											</TableCell>
+											<TableCell>{item.sku}</TableCell>
+											<TableCell>{item.limit}</TableCell>
+											<TableCell>{item.price}</TableCell>
+											<TableCell>{item.published.toString()}</TableCell>
 											<TableCell>
 												<DropdownMenu>
 													<DropdownMenuTrigger asChild>
@@ -150,7 +155,7 @@ export default function DataTable({ searchParams }: any) {
 							: [...Array(10)].map((index: number) => {
 									return (
 										<TableRow key={index}>
-											{[...Array(3)].map((row: number) => {
+											{[...Array(7)].map((row: number) => {
 												return (
 													<TableCell key={row}>
 														<Skeleton className="h-4 w-[100px]" />

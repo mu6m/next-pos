@@ -100,9 +100,14 @@ export const productFeaturesTable = pgTable("product_features", {
 		.primaryKey(),
 	name: varchar("name", { length: 255 }).notNull(),
 	type: productFeatureTypeEnum("type").notNull(),
-	option: text("option").array().notNull(),
-	priceAdd: integer("price_add").default(0).notNull(),
-	priceAddOptions: integer("price_add_options").array().notNull(),
+	priceAdd: integer("price_add").default(0),
+	option: text("option")
+		.array()
+		.default(sql`ARRAY[]::text[]`),
+	priceAddOptions: integer("price_add_options")
+		.array()
+		.default([])
+		.default(sql`ARRAY[]::integer[]`),
 	required: boolean("required").default(false).notNull(),
 	productId: uuid("product_id").notNull(),
 });

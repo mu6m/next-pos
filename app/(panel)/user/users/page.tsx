@@ -31,17 +31,17 @@ import {
 	PaginationNext,
 } from "@/components/ui/pagination";
 import { Skeleton } from "@/components/ui/skeleton";
-import Delete from "./delete/Delete";
 import { ExpandIcon, FileIcon, FilePenIcon } from "lucide-react";
 import Link from "next/link";
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { path } from "./config";
 
 export default function DataTable({ searchParams }: any) {
 	const fetcher = (url: string) => fetch(url).then((r) => r.json());
 	let { data, mutate } = useSWR(
-		`/user/tasks/read?${new URLSearchParams(searchParams).toString()}`,
+		`/user/${path}/read?${new URLSearchParams(searchParams).toString()}`,
 		fetcher
 	);
 	const router = useRouter();
@@ -51,7 +51,7 @@ export default function DataTable({ searchParams }: any) {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Tasks</CardTitle>
+				<CardTitle>{path}</CardTitle>
 			</CardHeader>
 			<CardContent>
 				<div className="flex items-center justify-between mb-4">
@@ -67,7 +67,7 @@ export default function DataTable({ searchParams }: any) {
 							size="sm"
 							onClick={() => {
 								router.push(
-									`/user/tasks?${new URLSearchParams({
+									`/user/${path}?${new URLSearchParams({
 										...searchParams,
 										q: search_input?.current?.value || "",
 									}).toString()}`
@@ -77,23 +77,15 @@ export default function DataTable({ searchParams }: any) {
 							Search
 						</Button>
 					</div>
-					<a
-						href="/user/tasks/create"
-						className={buttonVariants({
-							size: "sm",
-						})}
-					>
-						Create
-					</a>
 				</div>
 				<Table>
 					<TableHeader>
 						<TableRow>
 							<TableHead>id</TableHead>
-							<TableHead>Title</TableHead>
-							<TableHead>Rows</TableHead>
-							<TableHead>State</TableHead>
-							<TableHead>actions</TableHead>
+							<TableHead>Name</TableHead>
+							<TableHead>Username</TableHead>
+							<TableHead>Email</TableHead>
+							<TableHead>Type</TableHead>
 						</TableRow>
 					</TableHeader>
 					<TableBody>
@@ -102,63 +94,10 @@ export default function DataTable({ searchParams }: any) {
 									return (
 										<TableRow key={item.id}>
 											<TableCell>{index + 1}</TableCell>
-											<TableCell className="font-medium">
-												{item.title}
-											</TableCell>
-											<TableCell>{item.rows}</TableCell>
-											<TableCell>
-												{item.state}{" "}
-												{item.state == "ERROR" && (
-													<Button
-														variant={"outline"}
-														onClick={async () => {
-															await axios.get(
-																`/user/tasks/actions?id=${item.id}`
-															);
-															await mutate();
-														}}
-													>
-														Restart Task
-													</Button>
-												)}
-											</TableCell>
-											<TableCell>
-												<DropdownMenu>
-													<DropdownMenuTrigger asChild>
-														<Button size="icon" variant="ghost">
-															<ExpandIcon className="h-4 w-4" />
-															<span className="sr-only">Actions</span>
-														</Button>
-													</DropdownMenuTrigger>
-													<DropdownMenuContent align="end">
-														<DropdownMenuItem>
-															<a
-																href={`/user/tasks/${item.id}?view=true`}
-																className="flex gap-1"
-															>
-																<FileIcon className="h-4 w-4 mr-2" />
-																View
-															</a>
-														</DropdownMenuItem>
-														<DropdownMenuItem>
-															<a
-																href={`/user/tasks/${item.id}`}
-																className="flex gap-1"
-															>
-																<FilePenIcon className="h-4 w-4 mr-2" />
-																Edit
-															</a>
-														</DropdownMenuItem>
-														<DropdownMenuItem
-															onClick={(e) => {
-																e.preventDefault();
-															}}
-														>
-															<Delete mutate={mutate} id={item.id} />
-														</DropdownMenuItem>
-													</DropdownMenuContent>
-												</DropdownMenu>
-											</TableCell>
+											<TableCell className="font-medium">{item.name}</TableCell>
+											<TableCell>{item.username}</TableCell>
+											<TableCell>{item.email}</TableCell>
+											<TableCell>{item.type}</TableCell>
 										</TableRow>
 									);
 							  })
@@ -199,7 +138,7 @@ export default function DataTable({ searchParams }: any) {
 								{currentPage > 1 && (
 									<PaginationItem>
 										<PaginationPrevious
-											href={`/user/tasks?${new URLSearchParams({
+											href={`/user/${path}?${new URLSearchParams({
 												...searchParams,
 												page: currentPage - 1,
 											}).toString()}`}
@@ -209,7 +148,7 @@ export default function DataTable({ searchParams }: any) {
 								{currentPage < data.pages && (
 									<PaginationItem>
 										<PaginationNext
-											href={`/user/tasks?${new URLSearchParams({
+											href={`/user/${path}?${new URLSearchParams({
 												...searchParams,
 												page: currentPage + 1,
 											}).toString()}`}

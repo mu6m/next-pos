@@ -6,7 +6,7 @@ import "@/app/globals.css";
 import React from "react";
 
 export const metadata: Metadata = {
-	title: "dashboard | Datafy",
+	title: "dashboard | POS",
 };
 
 export default function DashboardLayout({
