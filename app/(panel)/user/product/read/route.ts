@@ -25,27 +25,6 @@ export const GET = async (request: any, params: any) => {
 			}
 		);
 	}
-	if (id) {
-		const item = await db.query.productTable.findFirst({
-			with: {
-				productFeatures: true,
-			},
-			where: eq(productTable.id, id),
-		});
-		if (!item) {
-			return Response.json(
-				{
-					success: false,
-					message: `item not found`,
-				},
-				{
-					status: 400,
-				}
-			);
-		}
-		return Response.json({ item });
-	}
-	//optimize this
 	const [page_count] = await db
 		.select({ count: count() })
 		.from(productTable)

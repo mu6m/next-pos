@@ -2,18 +2,14 @@
 
 import { put } from "@vercel/blob";
 import { db } from "@/db";
-import { categoryTable, productFeaturesTable, productTable } from "@/db/schema";
-import { inngest } from "@/inngest/client";
+import { productFeaturesTable, productTable } from "@/db/schema";
 import { verifyAccessToken } from "@/lib/jwt";
-import axios from "axios";
-import { and, count, eq, ne } from "drizzle-orm";
 import { cookies } from "next/headers";
-import { z } from "zod";
 import { path } from "../config";
-import { features } from "process";
 import { validate } from "../create/action";
+import { eq } from "drizzle-orm";
 
-export async function form(prevState: any, formData: FormData) {
+export async function form(prevState: any, formData: any) {
 	let parse = await validate(formData);
 	if (!parse.success) {
 		return {
@@ -30,18 +26,24 @@ export async function form(prevState: any, formData: FormData) {
 			message: `error in user token`,
 		};
 	}
-	console.log(parse.data.feature);
 
 	try {
 		await db.transaction(async (tx) => {
-			const blob = await put(parse.data.title, parse.data.image, {
-				access: "public",
-			});
+			await tx
+				.delete(productFeaturesTable)
+				.where(eq(productFeaturesTable.productId, prevState.edit));
+			let upload = [];
+			if (parse.data.image.length > 0) {
+				const blob = await put(parse.data.title, parse.data.image[0], {
+					access: "public",
+				});
+				upload.push(blob.downloadUrl);
+			}
 			const [product] = await tx
 				.update(productTable)
 				.set({
 					title: parse.data.title,
-					images: [blob.downloadUrl],
+					images: upload,
 					content: parse.data.content,
 					limit: parse.data.limit,
 					price: parse.data.price,
@@ -51,9 +53,6 @@ export async function form(prevState: any, formData: FormData) {
 				})
 				.where(eq(productTable.id, prevState.edit))
 				.returning();
-			await tx
-				.delete(productFeaturesTable)
-				.where(eq(productTable.id, prevState.edit));
 			if (parse.data.feature.length > 0) {
 				parse.data.feature.forEach((item: any) => {
 					item.productId = product.id;
@@ -73,6 +72,6 @@ export async function form(prevState: any, formData: FormData) {
 		...prevState,
 
 		success: true,
-		message: `${path} "${parse.data.title}" is created`,
+		message: `${path} "${parse.data.title}" is updated`,
 	};
 }

@@ -2,17 +2,13 @@
 
 import { put } from "@vercel/blob";
 import { db } from "@/db";
-import { categoryTable, productFeaturesTable, productTable } from "@/db/schema";
-import { inngest } from "@/inngest/client";
+import { productFeaturesTable, productTable } from "@/db/schema";
 import { verifyAccessToken } from "@/lib/jwt";
-import axios from "axios";
-import { and, count, eq, ne } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { path } from "../config";
-import { features } from "process";
 
-export async function validate(formData: FormData) {
+export async function validate(formData: any) {
 	enum types {
 		OPTION = "OPTION",
 		CHECKBOX = "CHECKBOX",
@@ -21,44 +17,40 @@ export async function validate(formData: FormData) {
 	const schema = z.object({
 		title: z.string().min(1, "title is required"),
 		content: z.string(),
-		sku: z.string().min(1, "sku is required"),
+		sku: z.string(),
 		limit: z.number().min(-1, "limit is required"),
 		price: z.number().min(0, "price is required"),
-		publish: z.boolean(),
+		publish: z.boolean().default(false),
 		category: z.string().nullable(),
-		image: z.custom<File>().refine((file) => {
-			if (file.size > 10 * 1024 * 1024) {
-				return false;
+		image: z.array(z.custom<File>()).refine((files: any) => {
+			if (files.length === 0) {
+				return true; // Allow the array to be empty
 			}
-			return true;
-		}, `File size should be less than 10mb.`),
+			return files.every((file: File) => file.size <= 10 * 1024 * 1024);
+		}, "Each file should be less than 10MB."),
 		feature: z.array(
 			z.object({
 				name: z.string().min(1, "name is required"),
-				priceAdd: z.number().min(0, "minumum is zero"),
-				option: z.array(z.string()),
-				priceAddOptions: z.array(z.number().min(0, "minumum is zero")),
-				published: z.boolean().default(false),
+				priceAdd: z
+					.number()
+					.min(0, "minumum is zero")
+					.default(0)
+					.transform((value) => (value === null ? 0 : value)),
+				required: z.boolean().default(false),
 				type: z.nativeEnum(types),
+				option: z.array(z.string()).default([]),
+				priceAddOptions: z
+					.array(z.number().min(0, "minumum is zero").default(0))
+					.default([]),
 			})
 		),
 	});
-	const parse = schema.safeParse({
-		title: formData.get("title"),
-		content: formData.get("content"),
-		sku: formData.get("sku"),
-		limit: Number(formData.get("limit")),
-		price: Number(formData.get("price")),
-		publish: Boolean(formData.get("publish")),
-		category: formData.get("category") == "" ? null : formData.get("category"),
-		image: formData.get("image"),
-		feature: JSON.parse(formData.get("feature")?.toString() || "{}"),
-	});
-
+	const parse = schema.safeParse(formData);
 	return parse;
 }
 
-export async function form(prevState: any, formData: FormData) {
+export async function form(prevState: any, formData: any) {
+	console.log(JSON.stringify(formData, null, 2));
 	let parse = await validate(formData);
 	if (!parse.success) {
 		return {
@@ -75,18 +67,21 @@ export async function form(prevState: any, formData: FormData) {
 			message: `error in user token`,
 		};
 	}
-	console.log(parse.data.feature);
 
 	try {
 		await db.transaction(async (tx) => {
-			const blob = await put(parse.data.title, parse.data.image, {
-				access: "public",
-			});
+			let upload = [];
+			if (parse.data.image.length > 0) {
+				const blob = await put(parse.data.title, parse.data.image[0], {
+					access: "public",
+				});
+				upload.push(blob.downloadUrl);
+			}
 			const [product] = await tx
 				.insert(productTable)
 				.values({
 					title: parse.data.title,
-					images: [blob.downloadUrl],
+					images: upload,
 					content: parse.data.content,
 					limit: parse.data.limit,
 					price: parse.data.price,
