@@ -2,7 +2,6 @@
 
 import { db } from "@/db";
 import { categoryTable } from "@/db/schema";
-import { inngest } from "@/inngest/client";
 import { verifyAccessToken } from "@/lib/jwt";
 import axios from "axios";
 import { and, count, eq, ne } from "drizzle-orm";

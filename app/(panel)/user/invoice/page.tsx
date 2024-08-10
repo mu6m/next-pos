@@ -37,21 +37,23 @@ import Link from "next/link";
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { path } from "./config";
 
 export default function DataTable({ searchParams }: any) {
 	const fetcher = (url: string) => fetch(url).then((r) => r.json());
 	let { data, mutate } = useSWR(
-		`/user/tasks/read?${new URLSearchParams(searchParams).toString()}`,
+		`/user/${path}/read?${new URLSearchParams(searchParams).toString()}`,
 		fetcher
 	);
 	const router = useRouter();
 	const search: string = searchParams.q || "";
 	const currentPage: number = Number(searchParams.page) || 1;
 	const search_input: any = useRef(null);
+	console.log(data);
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Tasks</CardTitle>
+				<CardTitle>{path}</CardTitle>
 			</CardHeader>
 			<CardContent>
 				<div className="flex items-center justify-between mb-4">
@@ -67,7 +69,7 @@ export default function DataTable({ searchParams }: any) {
 							size="sm"
 							onClick={() => {
 								router.push(
-									`/user/tasks?${new URLSearchParams({
+									`/user/${path}?${new URLSearchParams({
 										...searchParams,
 										q: search_input?.current?.value || "",
 									}).toString()}`
@@ -78,7 +80,7 @@ export default function DataTable({ searchParams }: any) {
 						</Button>
 					</div>
 					<a
-						href="/user/tasks/create"
+						href={`/pos/`}
 						className={buttonVariants({
 							size: "sm",
 						})}
@@ -90,9 +92,8 @@ export default function DataTable({ searchParams }: any) {
 					<TableHeader>
 						<TableRow>
 							<TableHead>id</TableHead>
-							<TableHead>Title</TableHead>
-							<TableHead>Rows</TableHead>
-							<TableHead>State</TableHead>
+							<TableHead>items</TableHead>
+							<TableHead>createdAt</TableHead>
 							<TableHead>actions</TableHead>
 						</TableRow>
 					</TableHeader>
@@ -105,23 +106,7 @@ export default function DataTable({ searchParams }: any) {
 											<TableCell className="font-medium">
 												{item.title}
 											</TableCell>
-											<TableCell>{item.rows}</TableCell>
-											<TableCell>
-												{item.state}{" "}
-												{item.state == "ERROR" && (
-													<Button
-														variant={"outline"}
-														onClick={async () => {
-															await axios.get(
-																`/user/tasks/actions?id=${item.id}`
-															);
-															await mutate();
-														}}
-													>
-														Restart Task
-													</Button>
-												)}
-											</TableCell>
+											<TableCell>{item.sku}</TableCell>
 											<TableCell>
 												<DropdownMenu>
 													<DropdownMenuTrigger asChild>
@@ -133,7 +118,7 @@ export default function DataTable({ searchParams }: any) {
 													<DropdownMenuContent align="end">
 														<DropdownMenuItem>
 															<a
-																href={`/user/tasks/${item.id}?view=true`}
+																href={`/user/${path}/${item.id}?view=true`}
 																className="flex gap-1"
 															>
 																<FileIcon className="h-4 w-4 mr-2" />
@@ -142,7 +127,7 @@ export default function DataTable({ searchParams }: any) {
 														</DropdownMenuItem>
 														<DropdownMenuItem>
 															<a
-																href={`/user/tasks/${item.id}`}
+																href={`/user/${path}/${item.id}`}
 																className="flex gap-1"
 															>
 																<FilePenIcon className="h-4 w-4 mr-2" />
@@ -165,7 +150,7 @@ export default function DataTable({ searchParams }: any) {
 							: [...Array(10)].map((index: number) => {
 									return (
 										<TableRow key={index}>
-											{[...Array(5)].map((row: number) => {
+											{[...Array(3)].map((row: number) => {
 												return (
 													<TableCell key={row}>
 														<Skeleton className="h-4 w-[100px]" />
@@ -199,7 +184,7 @@ export default function DataTable({ searchParams }: any) {
 								{currentPage > 1 && (
 									<PaginationItem>
 										<PaginationPrevious
-											href={`/user/tasks?${new URLSearchParams({
+											href={`/user/${path}?${new URLSearchParams({
 												...searchParams,
 												page: currentPage - 1,
 											}).toString()}`}
@@ -209,7 +194,7 @@ export default function DataTable({ searchParams }: any) {
 								{currentPage < data.pages && (
 									<PaginationItem>
 										<PaginationNext
-											href={`/user/tasks?${new URLSearchParams({
+											href={`/user/${path}?${new URLSearchParams({
 												...searchParams,
 												page: currentPage + 1,
 											}).toString()}`}

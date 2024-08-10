@@ -2,7 +2,6 @@
 
 import { db } from "@/db";
 import { categoryTable } from "@/db/schema";
-import { inngest } from "@/inngest/client";
 import { verifyAccessToken } from "@/lib/jwt";
 import { and, count, eq, ne } from "drizzle-orm";
 import { cookies } from "next/headers";

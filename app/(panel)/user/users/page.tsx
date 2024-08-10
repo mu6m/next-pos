@@ -93,7 +93,7 @@ export default function DataTable({ searchParams }: any) {
 							? data.items.map((item: any, index: number) => {
 									return (
 										<TableRow key={item.id}>
-											<TableCell>{index + 1}</TableCell>
+											<TableCell>{item.id}</TableCell>
 											<TableCell className="font-medium">{item.name}</TableCell>
 											<TableCell>{item.username}</TableCell>
 											<TableCell>{item.email}</TableCell>

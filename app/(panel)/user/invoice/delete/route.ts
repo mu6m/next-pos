@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { column, task } from "@/db/schema";
+import { categoryTable, productFeaturesTable, productTable } from "@/db/schema";
 import { verifyAccessToken } from "@/lib/jwt";
 import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
@@ -29,8 +29,10 @@ export const DELETE = async (request: any, params: any) => {
 	}
 	try {
 		await db.transaction(async (tx) => {
-			await tx.delete(column).where(eq(column.taskId, id));
-			await tx.delete(task).where(eq(task.id, id));
+			await tx
+				.delete(productFeaturesTable)
+				.where(eq(productFeaturesTable.productId, id));
+			await tx.delete(productTable).where(eq(productTable.id, id));
 		});
 	} catch (error) {
 		return Response.json({

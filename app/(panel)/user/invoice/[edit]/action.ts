@@ -1,45 +1,19 @@
 "use server";
 
+import { put } from "@vercel/blob";
 import { db } from "@/db";
-import { column, gen, task, taskStateEnum } from "@/db/schema";
-import { inngest } from "@/inngest/client";
+import { productFeaturesTable, productTable } from "@/db/schema";
 import { verifyAccessToken } from "@/lib/jwt";
-import { and, count, eq, ne } from "drizzle-orm";
 import { cookies } from "next/headers";
-import { z } from "zod";
+import { path } from "../config";
+import { validate } from "../create/action";
+import { eq } from "drizzle-orm";
 
-export async function form(prevState: any, formData: FormData) {
-	enum types {
-		STRING = "STRING",
-		NUMBER = "NUMBER",
-		TIME = "TIME",
-		BOOLEAN = "BOOLEAN",
-	}
-	const schema = z.object({
-		id: z.string().min(1, { message: "id is required" }),
-		title: z.string().min(1, { message: "title is required" }),
-		rows: z.number().min(1).max(1_000),
-		names: z
-			.array(z.string().min(1, { message: "name is required" }))
-			.nonempty(),
-		types: z.array(z.nativeEnum(types)).nonempty(),
-		texts: z
-			.array(
-				z.string().min(1, { message: "generate text is required" }).max(500)
-			)
-			.nonempty(),
-	});
-	const parse = schema.safeParse({
-		id: formData.get("id"),
-		title: formData.get("title"),
-		rows: Number(formData.get("rows")),
-		names: Array.from(formData.getAll("name")),
-		types: Array.from(formData.getAll("type")),
-		texts: Array.from(formData.getAll("generate")),
-	});
-
+export async function form(prevState: any, formData: any) {
+	let parse = await validate(formData);
 	if (!parse.success) {
 		return {
+			...prevState,
 			success: false,
 			message: `there is an error in your data ${parse.error.message}`,
 		};
@@ -55,46 +29,49 @@ export async function form(prevState: any, formData: FormData) {
 
 	try {
 		await db.transaction(async (tx) => {
-			await tx.delete(column).where(eq(column.taskId, parse.data.id));
-			await tx.delete(gen).where(eq(gen.taskId, parse.data.id));
-			await db
-				.update(task)
-				.set({ state: "PENDING" })
-				.where(eq(task.id, parse.data.id));
-			const [result] = await tx
-				.update(task)
+			await tx
+				.delete(productFeaturesTable)
+				.where(eq(productFeaturesTable.productId, prevState.edit));
+			let upload = [];
+			if (parse.data.image.length > 0) {
+				const blob = await put(parse.data.title, parse.data.image[0], {
+					access: "public",
+				});
+				upload.push(blob.downloadUrl);
+			}
+			const [product] = await tx
+				.update(productTable)
 				.set({
 					title: parse.data.title,
-					rows: parse.data.rows,
+					images: upload,
+					content: parse.data.content,
+					limit: parse.data.limit,
+					price: parse.data.price,
+					published: parse.data.publish,
+					sku: parse.data.sku,
+					categoryId: parse.data.category,
 				})
-				.where(eq(task.id, parse.data.id))
-				.returning({ id: task.id });
-			let insert_arr: any = [];
-			for (let index = 0; index < parse.data.names.length; index++) {
-				insert_arr.push({
-					taskId: result.id,
-					type: parse.data.types[index],
-					generate: parse.data.texts[index],
-					name: parse.data.names[index],
+				.where(eq(productTable.id, prevState.edit))
+				.returning();
+			if (parse.data.feature.length > 0) {
+				parse.data.feature.forEach((item: any) => {
+					item.productId = product.id;
 				});
+				await tx.insert(productFeaturesTable).values(parse.data.feature as any);
 			}
-			await tx.insert(column).values(insert_arr);
-			await inngest.send({
-				name: "generate",
-				data: {
-					id: result.id,
-					columns: insert_arr,
-				},
-			});
 		});
 	} catch (error) {
+		console.log(error);
 		return {
+			...prevState,
 			success: false,
 			message: `error in db`,
 		};
 	}
 	return {
+		...prevState,
+
 		success: true,
-		message: `task "${parse.data.title}" is updated`,
+		message: `${path} "${parse.data.title}" is updated`,
 	};
 }

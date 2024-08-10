@@ -1,46 +1,60 @@
 "use server";
 
+import { put } from "@vercel/blob";
 import { db } from "@/db";
-import { column, task, taskStateEnum } from "@/db/schema";
-import { inngest } from "@/inngest/client";
+import { productFeaturesTable, productTable } from "@/db/schema";
 import { verifyAccessToken } from "@/lib/jwt";
-import axios from "axios";
-import { and, count, eq, ne } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { z } from "zod";
+import { path } from "../config";
 
-const task_limit = 5;
-
-export async function form(prevState: any, formData: FormData) {
+export async function validate(formData: any) {
 	enum types {
-		STRING = "STRING",
-		NUMBER = "NUMBER",
-		TIME = "TIME",
-		BOOLEAN = "BOOLEAN",
+		OPTION = "OPTION",
+		CHECKBOX = "CHECKBOX",
+		TEXT = "TEXT",
 	}
 	const schema = z.object({
-		title: z.string().min(1, { message: "title is required" }),
-		rows: z.number().min(1).max(1_000),
-		names: z
-			.array(z.string().min(1, { message: "name is required" }))
-			.nonempty(),
-		types: z.array(z.nativeEnum(types)).nonempty(),
-		texts: z
-			.array(
-				z.string().min(1, { message: "generate text is required" }).max(500)
-			)
-			.nonempty(),
+		title: z.string().min(1, "title is required"),
+		content: z.string(),
+		sku: z.string(),
+		limit: z.number().min(-1, "limit is required"),
+		price: z.number().min(0, "price is required"),
+		publish: z.boolean().default(false),
+		category: z.string().nullable(),
+		image: z.array(z.custom<File>()).refine((files: any) => {
+			if (files.length === 0) {
+				return true; // Allow the array to be empty
+			}
+			return files.every((file: File) => file.size <= 10 * 1024 * 1024);
+		}, "Each file should be less than 10MB."),
+		feature: z.array(
+			z.object({
+				name: z.string().min(1, "name is required"),
+				priceAdd: z
+					.number()
+					.min(0, "minumum is zero")
+					.default(0)
+					.transform((value) => (value === null ? 0 : value)),
+				required: z.boolean().default(false),
+				type: z.nativeEnum(types),
+				option: z.array(z.string()).default([]),
+				priceAddOptions: z
+					.array(z.number().min(0, "minumum is zero").default(0))
+					.default([]),
+			})
+		),
 	});
-	const parse = schema.safeParse({
-		title: formData.get("title"),
-		rows: Number(formData.get("rows")),
-		names: Array.from(formData.getAll("name")),
-		types: Array.from(formData.getAll("type")),
-		texts: Array.from(formData.getAll("generate")),
-	});
+	const parse = schema.safeParse(formData);
+	return parse;
+}
 
+export async function form(prevState: any, formData: any) {
+	console.log(JSON.stringify(formData, null, 2));
+	let parse = await validate(formData);
 	if (!parse.success) {
 		return {
+			...prevState,
 			success: false,
 			message: `there is an error in your data ${parse.error.message}`,
 		};
@@ -53,52 +67,48 @@ export async function form(prevState: any, formData: FormData) {
 			message: `error in user token`,
 		};
 	}
-	const [user_limit] = await db
-		.select({ count: count() })
-		.from(task)
-		.where(and(eq(task.userId, token.id), eq(task.state, "PENDING")));
-	if (user_limit.count >= task_limit) {
-		return {
-			success: false,
-			message: `task limit exceeded`,
-		};
-	}
+
 	try {
 		await db.transaction(async (tx) => {
-			const [result] = await tx
-				.insert(task)
-				.values({
-					userId: token.id,
-					title: parse.data.title,
-					rows: parse.data.rows,
-				})
-				.returning({ id: task.id });
-			let insert_arr: any = [];
-			for (let index = 0; index < parse.data.names.length; index++) {
-				insert_arr.push({
-					taskId: result.id,
-					type: parse.data.types[index],
-					generate: parse.data.texts[index],
-					name: parse.data.names[index],
+			let upload = [];
+			if (parse.data.image.length > 0) {
+				const blob = await put(parse.data.title, parse.data.image[0], {
+					access: "public",
 				});
+				upload.push(blob.downloadUrl);
 			}
-			await tx.insert(column).values(insert_arr);
-			await inngest.send({
-				name: "generate",
-				data: {
-					id: result.id,
-					columns: insert_arr,
-				},
-			});
+			const [product] = await tx
+				.insert(productTable)
+				.values({
+					title: parse.data.title,
+					images: upload,
+					content: parse.data.content,
+					limit: parse.data.limit,
+					price: parse.data.price,
+					published: parse.data.publish,
+					sku: parse.data.sku,
+					categoryId: parse.data.category,
+				})
+				.returning();
+			if (parse.data.feature.length > 0) {
+				parse.data.feature.forEach((item: any) => {
+					item.productId = product.id;
+				});
+				await tx.insert(productFeaturesTable).values(parse.data.feature as any);
+			}
 		});
 	} catch (error) {
+		console.log(error);
 		return {
+			...prevState,
 			success: false,
 			message: `error in db`,
 		};
 	}
 	return {
+		...prevState,
+
 		success: true,
-		message: `task "${parse.data.title}" is created`,
+		message: `${path} "${parse.data.title}" is created`,
 	};
 }

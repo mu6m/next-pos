@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { ReloadIcon } from "@radix-ui/react-icons";
 import axios from "axios";
+import { path } from "../config";
 
 export default function Delete({ id, mutate }: any) {
 	const [loading, setLoading] = useState(false);
@@ -51,7 +52,7 @@ export default function Delete({ id, mutate }: any) {
 					<Button
 						onClick={async () => {
 							setLoading(true);
-							const { data } = await axios.delete("/user/tasks/delete", {
+							const { data } = await axios.delete(`/user/${path}/delete`, {
 								params: { id },
 							});
 							setLoading(false);
