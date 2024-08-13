@@ -3,9 +3,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { XIcon } from "lucide-react";
+import axios from "axios";
+import { useToast } from "@/components/ui/use-toast";
 
 export default function Component({ product, mutate }: any) {
+	const { toast } = useToast();
 	const [selectedItems, setSelectedItems]: any = useState([]);
+	const [loading, setLoading]: any = useState(false);
 	const handleAddToOrder = (item: any) => {
 		setSelectedItems((prevItems: any) => {
 			const itemExists = prevItems.some(
@@ -119,7 +123,32 @@ export default function Component({ product, mutate }: any) {
 						<span className="font-bold">Total:</span>
 						<span className="font-bold">${totalAmount.toFixed(2)}</span>
 					</div>
-					<Button className="w-full" onClick={async () => {}}>
+					<Button
+						className="w-full"
+						onClick={async () => {
+							setLoading(true);
+							try {
+								console.log(selectedItems);
+								const { data } = await axios.post("/pos/action", selectedItems);
+								toast({
+									variant: data.success ? "default" : "destructive",
+									title: data.message,
+								});
+								if (data.success) {
+									await mutate();
+									// setSelectedItems([]);
+								}
+							} catch {
+								toast({
+									variant: "destructive",
+									title: "api error",
+								});
+							} finally {
+								setLoading(false);
+							}
+						}}
+						disabled={loading}
+					>
 						Checkout
 					</Button>
 				</div>

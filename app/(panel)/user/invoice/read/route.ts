@@ -31,6 +31,9 @@ export const GET = async (request: any, params: any) => {
 		orderBy: desc(invoiceTable.createdAt),
 		offset: (currentPage - 1) * perPage,
 		limit: perPage,
+		with: {
+			invoiceAndProducts: true,
+		},
 		// where: ilike(invoiceTable.userId, `%${search}%`),
 	});
 	return Response.json({ items, pages });

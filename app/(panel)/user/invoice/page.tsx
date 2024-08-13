@@ -104,9 +104,9 @@ export default function DataTable({ searchParams }: any) {
 										<TableRow key={item.id}>
 											<TableCell>{index + 1}</TableCell>
 											<TableCell className="font-medium">
-												{item.title}
+												{item.invoiceAndProducts.length}
 											</TableCell>
-											<TableCell>{item.sku}</TableCell>
+											<TableCell>{item.createdAt}</TableCell>
 											<TableCell>
 												<DropdownMenu>
 													<DropdownMenuTrigger asChild>
@@ -150,7 +150,7 @@ export default function DataTable({ searchParams }: any) {
 							: [...Array(10)].map((index: number) => {
 									return (
 										<TableRow key={index}>
-											{[...Array(3)].map((row: number) => {
+											{[...Array(4)].map((row: number) => {
 												return (
 													<TableCell key={row}>
 														<Skeleton className="h-4 w-[100px]" />
