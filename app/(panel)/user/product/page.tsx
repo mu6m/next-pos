@@ -33,10 +33,8 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import Delete from "./delete/Delete";
 import { ExpandIcon, FileIcon, FilePenIcon } from "lucide-react";
-import Link from "next/link";
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
 import { path } from "./config";
 
 export default function DataTable({ searchParams }: any) {

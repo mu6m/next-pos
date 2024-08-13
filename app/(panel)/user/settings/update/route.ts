@@ -3,26 +3,7 @@ import { user } from "@/db/schema";
 import { verifyAccessToken } from "@/lib/jwt";
 import { eq } from "drizzle-orm";
 import { cookies } from "next/headers";
-import { z } from "zod";
-import { schema_email, schema_name, schema_username } from "./validate";
-
-export const GET = async () => {
-	const cookie = cookies().get("user");
-	const token: any = await verifyAccessToken(cookie?.value);
-	if (token === false || !token) {
-		return Response.json(
-			{
-				success: false,
-				message: `error in user token`,
-			},
-			{
-				status: 400,
-			}
-		);
-	}
-	const [data] = await db.select().from(user).where(eq(user.id, token.id));
-	return Response.json(data);
-};
+import { schema_name, schema_username } from "./validate";
 
 export const POST = async (request: any) => {
 	const searchParams = request.nextUrl.searchParams;
